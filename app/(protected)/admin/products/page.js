@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from "react";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://flipkart1-f0oe.onrender.com/api";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://flipkart1-fo0e.onrender.com/api";
 
 /* ================= HEALTH CHECK (NON-BLOCKING) ================= */
 
 const testConnection = async () => {
   try {
-    const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || "https://flipkart1-f0oe.onrender.com";
+    const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || "https://flipkart1-fo0e.onrender.com";
     const res = await fetch(`${SOCKET_URL}/health`);
     await res.json();
     console.log("✅ Backend reachable");
