@@ -1,6 +1,21 @@
-const API_URL = typeof window !== 'undefined' && process.env.NEXT_PUBLIC_API_URL 
-  ? process.env.NEXT_PUBLIC_API_URL 
-  : "https://flipkart1-f0oe.onrender.com/api";
+// Get API URL - works in both dev and production
+const getApiUrl = () => {
+  // In browser
+  if (typeof window !== 'undefined') {
+    const envUrl = process.env.NEXT_PUBLIC_API_URL;
+    if (envUrl) {
+      console.log("📍 API URL from env:", envUrl);
+      return envUrl;
+    }
+  }
+  
+  // Fallback - production Render URL
+  const fallbackUrl = "https://flipkart1-f0oe.onrender.com/api";
+  console.log("📍 Using fallback API URL:", fallbackUrl);
+  return fallbackUrl;
+};
+
+const API_URL = getApiUrl();
 
 /* ===========================
    HELPER: AUTH HEADER
@@ -16,12 +31,29 @@ const authHeader = () => ({
 // GET ALL PRODUCTS (public)
 export const getProducts = async () => {
   try {
-    const res = await fetch(`${API_URL}/products`);
-    if (!res.ok) throw new Error(`API Error: ${res.status}`);
+    const url = `${API_URL}/products`;
+    console.log("🔥 Fetching products from:", url);
+    
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    console.log("📋 Response status:", res.status, res.statusText);
+    
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error("❌ API Error:", res.status, errorText);
+      throw new Error(`API Error: ${res.status} - ${errorText}`);
+    }
+    
     const data = await res.json();
+    console.log("✅ Products fetched successfully:", data.length, "items");
     return data;
   } catch (error) {
-    console.error("Failed to fetch products:", error);
+    console.error("❌ Failed to fetch products:", error.message);
     throw error;
   }
 };
