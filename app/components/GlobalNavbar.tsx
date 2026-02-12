@@ -39,7 +39,7 @@ export default function GlobalNavbar() {
     localStorage.removeItem("cart");
     sessionStorage.removeItem("token");
     sessionStorage.removeItem("role");
-    router.push("/auth/login");
+    router.push("/login");
   };
 
   const isCustomer = mounted && userRole === "customer";

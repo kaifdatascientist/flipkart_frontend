@@ -12,14 +12,26 @@ export default function Dashboard() {
   useEffect(() => {
     const loadProducts = async () => {
       try {
-        console.log("🔥 Fetching products...");
+        console.log("🔥 Fetching products from dashboard...");
         const API_URL = process.env.NEXT_PUBLIC_API_URL;
+        console.log("📍 API URL:", API_URL);
+        
+        if (!API_URL) {
+          throw new Error("API URL not configured");
+        }
+
         const res = await fetch(`${API_URL}/products`);
+        console.log("📋 Response status:", res.status);
+        
+        if (!res.ok) {
+          throw new Error(`Failed to fetch products: ${res.status}`);
+        }
+        
         const data = await res.json();
         console.log("🔥 Products:", data);
-        setProducts(data);
+        setProducts(Array.isArray(data) ? data : []);
       } catch (err) {
-        console.error("Failed to load products", err);
+        console.error("❌ Failed to load products:", err);
       } finally {
         setLoading(false);
       }
@@ -37,6 +49,8 @@ export default function Dashboard() {
 
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL;
+      console.log("📍 Placing order to:", `${API_URL}/orders/place`);
+      
       const res = await fetch(`${API_URL}/orders/place`, {
         method: "POST",
         headers: {
@@ -62,7 +76,8 @@ export default function Dashboard() {
 
       alert("✅ Order placed successfully");
     } catch (err) {
-      alert("Something went wrong");
+      console.error("❌ Order error:", err);
+      alert("Something went wrong: " + err.message);
     }
   };
 

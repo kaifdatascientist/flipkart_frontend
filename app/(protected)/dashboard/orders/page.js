@@ -26,7 +26,7 @@ export default function MyOrders() {
 
       if (!token) {
         alert("Not authenticated. Please login again.");
-        router.push("/auth/login");
+        router.push("/login");
         return;
       }
 
