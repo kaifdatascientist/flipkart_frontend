@@ -1,4 +1,4 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://flipkart1-f0oe.onrender.com/api";
+const API_URL = "https://flipkart1-f0oe.onrender.com/api";
 
 /* ===========================
    HELPER: AUTH HEADER
