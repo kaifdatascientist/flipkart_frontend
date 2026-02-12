@@ -4,6 +4,10 @@ import { useCart } from "@/context/cardcontext";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
+const API_URL = typeof window !== 'undefined' && process.env.NEXT_PUBLIC_API_URL 
+  ? process.env.NEXT_PUBLIC_API_URL 
+  : "https://flipkart1-f0oe.onrender.com/api";
+
 export default function CartPage() {
   const { cart, removeFromCart, clearCart } = useCart();
   const [mounted, setMounted] = useState(false);

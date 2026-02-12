@@ -39,6 +39,7 @@ export const getProducts = async () => {
       headers: {
         'Content-Type': 'application/json',
       },
+      credentials: 'include',
     });
     
     console.log("📋 Response status:", res.status, res.statusText);
@@ -123,6 +124,7 @@ export const loginUser = async (data) => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
+      credentials: 'include',
     });
 
     console.log("📊 Response status:", res.status);
@@ -147,6 +149,7 @@ export const registerUser = async (data) => {
     const res = await fetch(`${API_URL}/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      credentials: 'include',
       body: JSON.stringify(data),
     });
 

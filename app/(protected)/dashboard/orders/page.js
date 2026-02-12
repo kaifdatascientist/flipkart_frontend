@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import socket from "@/services/socket";
-import LiveCourierMap from "../../../components/map/LiveCourierMap";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://flipkart1-f0oe.onrender.com/api";
+const API_URL = typeof window !== 'undefined' && process.env.NEXT_PUBLIC_API_URL 
+  ? process.env.NEXT_PUBLIC_API_URL.replace('/products', '/orders') 
+  : "https://flipkart1-f0oe.onrender.com/api/orders";
 
 export default function MyOrders() {
   const router = useRouter();
@@ -13,11 +13,7 @@ export default function MyOrders() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("PENDING");
 
-  // ✅ ADDED STATE (for tracking)
-  const [activeTrackingOrder, setActiveTrackingOrder] = useState(null);
-  const [userLocation, setUserLocation] = useState(null);
-
-  /* ================= API CALL ================= */
+  /* ================= API CALLS ================= */
 
   const loadMyOrders = async () => {
     try {
@@ -30,74 +26,43 @@ export default function MyOrders() {
         return;
       }
 
+      console.log("📦 Loading my orders...");
+
       const res = await fetch(`${API_URL}/my`, {
+        method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
       });
 
+      if (!res.ok) {
+        let errorMsg = "Failed to load orders";
+        try {
+          const errorData = await res.json();
+          errorMsg = errorData.message || errorMsg;
+        } catch {}
+        throw new Error(errorMsg);
+      }
+
       const data = await res.json();
+      console.log("✅ Orders loaded:", data);
       setOrders(data);
     } catch (err) {
-      alert("Failed to load orders");
+      console.error("❌ Load orders error:", err);
+      alert(err.message || "Failed to load orders");
     } finally {
       setLoading(false);
     }
   };
 
-  /* ================= INITIAL LOAD ================= */
+  /* ================= LIFECYCLE ================= */
 
   useEffect(() => {
     loadMyOrders();
   }, []);
 
-  /* ================= SOCKET.IO: ORDER STATUS ================= */
-
-  useEffect(() => {
-    socket.on("order-status-updated", ({ orderId, status }) => {
-      setOrders((prev) =>
-        prev.map((order) =>
-          order._id === orderId ? { ...order, status } : order
-        )
-      );
-    });
-
-    return () => {
-      socket.off("order-status-updated");
-    };
-  }, []);
-
-  /* ================= SOCKET.IO: JOIN ORDER ROOMS ================= */
-
-  useEffect(() => {
-    orders.forEach((order) => {
-      socket.emit("join-order", order._id);
-    });
-  }, [orders]);
-
-  /* ================= LOCATION HANDLER (🟢 ADDED) ================= */
-
-  const startTracking = (orderId) => {
-    if (!navigator.geolocation) {
-      alert("Geolocation not supported by browser");
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setUserLocation({
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-        });
-        setActiveTrackingOrder(orderId);
-      },
-      () => {
-        alert("Location permission denied");
-      }
-    );
-  };
-
-  /* ================= UI HELPERS ================= */
+  /* ================= FILTERS & RENDERING ================= */
 
   const filteredOrders = orders.filter((order) => order.status === filter);
 
@@ -121,7 +86,7 @@ export default function MyOrders() {
       case "PENDING":
         return "⏳ Waiting for seller confirmation...";
       case "CONFIRMED":
-        return "🚚 Courier on the way (live tracking available)";
+        return "✅ Order confirmed! Preparing to ship";
       case "DELIVERED":
         return "🎉 Order delivered successfully!";
       case "REJECTED":
@@ -130,8 +95,6 @@ export default function MyOrders() {
         return status;
     }
   };
-
-  /* ================= RENDER ================= */
 
   if (loading) {
     return (
@@ -148,11 +111,11 @@ export default function MyOrders() {
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-4xl font-bold text-gray-900">📦 My Orders</h1>
-            <p className="text-gray-600">Track your orders (live)</p>
+            <p className="text-gray-600">Track your orders</p>
           </div>
           <button
             onClick={() => router.push("/dashboard")}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-lg"
+            className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-lg transition"
           >
             ← Back to Shopping
           </button>
@@ -164,10 +127,10 @@ export default function MyOrders() {
             <button
               key={status}
               onClick={() => setFilter(status)}
-              className={`px-6 py-2 rounded-lg font-semibold ${
+              className={`px-6 py-2 rounded-lg font-semibold transition ${
                 filter === status
                   ? "bg-blue-600 text-white"
-                  : "bg-white border-2 border-gray-300"
+                  : "bg-white text-gray-800 border-2 border-gray-300 hover:border-blue-600"
               }`}
             >
               {status} ({orders.filter((o) => o.status === status).length})
@@ -175,21 +138,27 @@ export default function MyOrders() {
           ))}
         </div>
 
-        {/* Orders */}
+        {/* Orders List */}
         {filteredOrders.length === 0 ? (
           <div className="bg-white rounded-lg shadow-md p-12 text-center">
-            <p className="text-2xl text-gray-600">
+            <p className="text-2xl text-gray-600 mb-4">
               No {filter.toLowerCase()} orders
             </p>
+            <button
+              onClick={() => router.push("/dashboard")}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-3 rounded-lg"
+            >
+              Continue Shopping
+            </button>
           </div>
         ) : (
           <div className="space-y-6">
             {filteredOrders.map((order) => (
               <div key={order._id} className="bg-white rounded-lg shadow-md p-6">
-                {/* Header */}
-                <div className="flex justify-between mb-4 pb-4 border-b">
+                {/* Order Header */}
+                <div className="flex justify-between items-start mb-4 pb-4 border-b">
                   <div>
-                    <h3 className="text-2xl font-bold">
+                    <h3 className="text-2xl font-bold text-gray-900">
                       Order #{order._id.slice(-8).toUpperCase()}
                     </h3>
                     <p className="text-gray-600">
@@ -197,77 +166,46 @@ export default function MyOrders() {
                     </p>
                   </div>
                   <div className="text-right">
-                    <span
-                      className={`px-4 py-2 rounded-full font-bold ${getStatusColor(
-                        order.status
-                      )}`}
-                    >
+                    <span className={`px-4 py-2 rounded-full font-bold ${getStatusColor(order.status)}`}>
                       {order.status}
                     </span>
-                    <p className="text-sm text-gray-600 mt-2">
-                      {getStatusMessage(order.status)}
-                    </p>
+                    <p className="text-sm text-gray-600 mt-2">{getStatusMessage(order.status)}</p>
                   </div>
                 </div>
 
                 {/* Products */}
-                <div className="bg-gray-50 rounded-lg p-4 mb-6">
-                  {order.products.map((item, idx) => (
-                    <div
-                      key={idx}
-                      className="flex justify-between items-center"
-                    >
-                      <div>
-                        <p className="font-semibold">
-                          {item.product?.name}
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          Quantity: {item.quantity}
-                        </p>
-                      </div>
-                      <span className="font-bold">
-                        ₹{item.price * item.quantity}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Total */}
-                <div className="grid grid-cols-2 bg-indigo-50 p-4 rounded-lg">
-                  <div>
-                    <p className="text-sm text-gray-600">Total Amount</p>
-                    <p className="text-2xl font-bold">
-                      ₹{order.totalAmount}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Seller</p>
-                    <p className="text-lg font-semibold">
-                      {order.seller?.name}
-                    </p>
+                <div className="mb-6 bg-gray-50 rounded-lg p-4">
+                  <h4 className="font-bold text-gray-900 mb-3">📦 Products:</h4>
+                  <div className="space-y-2">
+                    {order.products && order.products.length > 0 ? (
+                      order.products.map((item, idx) => (
+                        <div key={idx} className="flex justify-between items-center">
+                          <div className="flex-1">
+                            <p className="font-semibold text-gray-900">{item.product?.name || "Unknown Product"}</p>
+                            <p className="text-sm text-gray-600">Quantity: {item.quantity}</p>
+                          </div>
+                          <span className="font-bold text-gray-900">₹{item.price * item.quantity}</span>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-gray-600">No products</p>
+                    )}
                   </div>
                 </div>
 
-                {/* 🚚 TRACK BUTTON (🟢 ADDED) */}
-                {order.status === "CONFIRMED" && (
-                  <div className="mt-4">
-                    <button
-                      onClick={() => startTracking(order._id)}
-                      className="bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-800"
-                    >
-                      📍 Track Live Order
-                    </button>
+                {/* Order Total */}
+                <div className="grid grid-cols-2 gap-4 bg-indigo-50 p-4 rounded-lg">
+                  <div>
+                    <p className="text-gray-600 text-sm">Total Amount</p>
+                    <p className="text-2xl font-bold text-gray-900">₹{order.totalAmount}</p>
                   </div>
-                )}
-
-                {/* 🗺️ LIVE MAP (🟢 ADDED) */}
-                {activeTrackingOrder === order._id && userLocation && (
-                  <LiveCourierMap
-                    orderId={order._id}
-                    userLat={userLocation.lat}
-                    userLng={userLocation.lng}
-                  />
-                )}
+                  <div>
+                    <p className="text-gray-600 text-sm">Seller</p>
+                    <p className="text-lg font-semibold text-gray-900">
+                      {order.seller?.name || "Unknown Seller"}
+                    </p>
+                  </div>
+                </div>
               </div>
             ))}
           </div>

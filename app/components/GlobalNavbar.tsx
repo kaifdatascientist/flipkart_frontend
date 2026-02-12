@@ -4,34 +4,23 @@ import { useRouter } from "next/navigation";
 import { useCart } from "@/context/cardcontext";
 import { useEffect, useState } from "react";
 import { jwtDecode } from "jwt-decode";
-import socket from "@/services/socket";
 
 export default function GlobalNavbar() {
   const router = useRouter();
   const { cart } = useCart();
-  const [userRole, setUserRole] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState(null);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-
     const token = sessionStorage.getItem("token");
-    if (!token) return;
-
-    try {
-      const decoded: any = jwtDecode(token);
-      setUserRole(decoded.role);
-
-      // 🔥 JOIN SOCKET ROOMS
-      if (decoded.id) {
-        socket.emit("join-user-room", decoded.id);
-
-        if (decoded.role === "admin") {
-          socket.emit("join-admin-room");
-        }
+    if (token) {
+      try {
+        const decoded = jwtDecode<any>(token);
+        setUserRole(decoded.role);
+      } catch (error) {
+        console.error("Failed to decode token:", error);
       }
-    } catch (error) {
-      console.error("Token decode failed:", error);
     }
   }, []);
 
@@ -42,6 +31,7 @@ export default function GlobalNavbar() {
     router.push("/login");
   };
 
+  // Check if user is a customer (not admin/seller)
   const isCustomer = mounted && userRole === "customer";
   const isAdmin = mounted && userRole === "admin";
 
@@ -50,41 +40,38 @@ export default function GlobalNavbar() {
       <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
         <button
           onClick={() => router.push("/dashboard")}
-          className="text-2xl font-bold text-white hover:text-blue-100 transition"
+          className="text-2xl font-bold text-white hover:text-blue-100 transition cursor-pointer bg-none border-none p-0"
         >
           🛍️ LoginExpress
         </button>
-
         <div className="flex items-center gap-4">
           {isCustomer && (
             <>
               <button
                 onClick={() => router.push("/cart")}
-                className="bg-white text-blue-600 font-bold px-4 py-2 rounded-lg"
+                className="bg-white text-blue-600 font-bold px-4 py-2 rounded-lg hover:bg-blue-50 transition cursor-pointer"
               >
                 🛒 Cart ({cart.length})
               </button>
               <button
                 onClick={() => router.push("/dashboard/orders")}
-                className="bg-white text-blue-600 font-bold px-4 py-2 rounded-lg"
+                className="bg-white text-blue-600 font-bold px-4 py-2 rounded-lg hover:bg-blue-50 transition cursor-pointer"
               >
                 📦 My Orders
               </button>
             </>
           )}
-
           {isAdmin && (
             <button
               onClick={() => router.push("/admin")}
-              className="bg-white text-blue-600 font-bold px-4 py-2 rounded-lg"
+              className="bg-white text-blue-600 font-bold px-4 py-2 rounded-lg hover:bg-blue-50 transition cursor-pointer"
             >
               📊 Seller Panel
             </button>
           )}
-
           <button
             onClick={handleLogout}
-            className="bg-red-600 hover:bg-red-700 text-white font-bold px-4 py-2 rounded-lg"
+            className="bg-red-600 hover:bg-red-700 text-white font-bold px-4 py-2 rounded-lg transition cursor-pointer"
           >
             Logout
           </button>
