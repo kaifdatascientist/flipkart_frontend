@@ -2,13 +2,21 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { getMyOrders } from "@/services/api";
+
+const LiveCourierMap = dynamic(() => import("@/app/components/map/LiveCourierMap"), {
+  ssr: false,
+  loading: () => <div className="h-80 flex items-center justify-center bg-gray-200">Loading map...</div>,
+});
 
 export default function MyOrders() {
   const router = useRouter();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("PENDING");
+  const [trackingOrderId, setTrackingOrderId] = useState(null);
+  const [userLocation, setUserLocation] = useState(null);
 
   /* ================= API CALLS ================= */
 
@@ -20,6 +28,22 @@ export default function MyOrders() {
       const data = await getMyOrders();
       console.log("✅ Orders loaded:", data);
       setOrders(data);
+      
+      // Get user location for tracking
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            setUserLocation({
+              lat: position.coords.latitude,
+              lng: position.coords.longitude,
+            });
+          },
+          () => {
+            // Default to Mumbai if geolocation fails
+            setUserLocation({ lat: 19.0760, lng: 72.8777 });
+          }
+        );
+      }
     } catch (err) {
       console.error("❌ Load orders error:", err);
       
@@ -171,8 +195,8 @@ export default function MyOrders() {
                   </div>
                 </div>
 
-                {/* Order Total */}
-                <div className="grid grid-cols-2 gap-4 bg-indigo-50 p-4 rounded-lg">
+                {/* Order Total & Seller */}
+                <div className="grid grid-cols-2 gap-4 bg-indigo-50 p-4 rounded-lg mb-4">
                   <div>
                     <p className="text-gray-600 text-sm">Total Amount</p>
                     <p className="text-2xl font-bold text-gray-900">₹{order.totalAmount}</p>
@@ -184,6 +208,45 @@ export default function MyOrders() {
                     </p>
                   </div>
                 </div>
+
+                {/* Tracking Map Modal */}
+                {trackingOrderId === order._id && userLocation && (
+                  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-lg shadow-lg w-full max-w-2xl p-6">
+                      <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-2xl font-bold text-gray-900">🗺️ Track Your Order</h3>
+                        <button
+                          onClick={() => setTrackingOrderId(null)}
+                          className="text-gray-500 hover:text-gray-700 text-2xl"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                      <div className="border rounded-lg overflow-hidden">
+                        <LiveCourierMap
+                          orderId={order._id}
+                          userLat={userLocation.lat}
+                          userLng={userLocation.lng}
+                        />
+                      </div>
+                      <p className="text-sm text-gray-600 mt-4 text-center">
+                        🛵 Your courier is on the way! Updates in real-time.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Track Button for Confirmed Orders */}
+                {order.status === "CONFIRMED" && (
+                  <div className="mt-4">
+                    <button
+                      onClick={() => setTrackingOrderId(order._id)}
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-3 rounded-lg transition"
+                    >
+                      🗺️ Track Your Courier
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>

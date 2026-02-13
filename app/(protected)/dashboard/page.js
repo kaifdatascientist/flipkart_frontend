@@ -4,6 +4,10 @@ import { useEffect, useState } from "react";
 import ProductCard from "@/components/ProductCard";
 import { useCart } from "@/context/cardcontext";
 
+const API_URL = typeof window !== 'undefined'
+  ? process.env.NEXT_PUBLIC_API_URL || "https://flipkart1-fo0e.onrender.com/api"
+  : "https://flipkart1-fo0e.onrender.com/api";
+
 export default function Dashboard() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -13,7 +17,6 @@ export default function Dashboard() {
     const loadProducts = async () => {
       try {
         console.log("🔥 Fetching products from dashboard...");
-        const API_URL = process.env.NEXT_PUBLIC_API_URL;
         console.log("📍 API URL:", API_URL);
         
         if (!API_URL) {
@@ -28,7 +31,7 @@ export default function Dashboard() {
         }
         
         const data = await res.json();
-        console.log("🔥 Products:", data);
+        console.log("✅ Products:", data);
         setProducts(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error("❌ Failed to load products:", err);
@@ -48,7 +51,6 @@ export default function Dashboard() {
     }
 
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL;
       console.log("📍 Placing order to:", `${API_URL}/orders/place`);
       
       const res = await fetch(`${API_URL}/orders/place`, {
@@ -75,6 +77,7 @@ export default function Dashboard() {
       }
 
       alert("✅ Order placed successfully");
+
     } catch (err) {
       console.error("❌ Order error:", err);
       alert("Something went wrong: " + err.message);
