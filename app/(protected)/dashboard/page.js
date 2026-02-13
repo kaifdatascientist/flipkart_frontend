@@ -4,9 +4,10 @@ import { useEffect, useState } from "react";
 import ProductCard from "@/components/ProductCard";
 import { useCart } from "@/context/cardcontext";
 
-const API_URL = typeof window !== 'undefined'
-  ? process.env.NEXT_PUBLIC_API_URL || "https://flipkart1-fo0e.onrender.com/api"
-  : "https://flipkart1-fo0e.onrender.com/api";
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://flipkart1-fo0e.onrender.com/api";
+
 
 export default function Dashboard() {
   const [products, setProducts] = useState([]);
