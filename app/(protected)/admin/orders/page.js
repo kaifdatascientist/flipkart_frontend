@@ -1,11 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 
-const API_URL = typeof window !== 'undefined' && process.env.NEXT_PUBLIC_API_URL 
-  ? process.env.NEXT_PUBLIC_API_URL.replace('/products', '/orders') 
-  : "https://flipkart1-f0oe.onrender.com/api/orders";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://flipkart1-fo0e.onrender.com/api";
 
 export default function AdminOrders() {
   const router = useRouter();
@@ -16,7 +14,7 @@ export default function AdminOrders() {
 
   /* ================= API CALLS ================= */
 
-  const loadSellerOrders = async () => {
+  const loadSellerOrders = useCallback(async () => {
     try {
       setLoading(true);
       const token = sessionStorage.getItem("token");
@@ -29,7 +27,7 @@ export default function AdminOrders() {
 
       console.log("📦 Loading seller orders...");
 
-      const res = await fetch(`${API_URL}/seller`, {
+      const res = await fetch(`${API_URL}/orders/seller`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -56,7 +54,7 @@ export default function AdminOrders() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
 
   const updateOrderStatus = async (orderId, status) => {
     try {
@@ -64,7 +62,7 @@ export default function AdminOrders() {
 
       console.log(`🔄 Updating order ${orderId} status to ${status}...`);
 
-      const res = await fetch(`${API_URL}/${orderId}/status`, {
+      const res = await fetch(`${API_URL}/orders/${orderId}/status`, {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -99,7 +97,7 @@ export default function AdminOrders() {
 
   useEffect(() => {
     loadSellerOrders();
-  }, []);
+  }, [loadSellerOrders]);
 
   /* ================= FILTERS & RENDERING ================= */
 

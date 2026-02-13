@@ -1,11 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-
-const API_URL = typeof window !== 'undefined' && process.env.NEXT_PUBLIC_API_URL 
-  ? process.env.NEXT_PUBLIC_API_URL.replace('/products', '/orders') 
-  : "https://flipkart1-f0oe.onrender.com/api/orders";
+import { getMyOrders } from "@/services/api";
 
 export default function MyOrders() {
   const router = useRouter();
@@ -15,52 +12,33 @@ export default function MyOrders() {
 
   /* ================= API CALLS ================= */
 
-  const loadMyOrders = async () => {
+  const loadMyOrders = useCallback(async () => {
     try {
       setLoading(true);
-      const token = sessionStorage.getItem("token");
-
-      if (!token) {
-        alert("Not authenticated. Please login again.");
-        router.push("/login");
-        return;
-      }
-
       console.log("📦 Loading my orders...");
-
-      const res = await fetch(`${API_URL}/my`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!res.ok) {
-        let errorMsg = "Failed to load orders";
-        try {
-          const errorData = await res.json();
-          errorMsg = errorData.message || errorMsg;
-        } catch {}
-        throw new Error(errorMsg);
-      }
-
-      const data = await res.json();
+      
+      const data = await getMyOrders();
       console.log("✅ Orders loaded:", data);
       setOrders(data);
     } catch (err) {
       console.error("❌ Load orders error:", err);
-      alert(err.message || "Failed to load orders");
+      
+      if (err.message.includes("Not authenticated")) {
+        alert("Not authenticated. Please login again.");
+        router.push("/login");
+      } else {
+        alert(err.message || "Failed to load orders");
+      }
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
 
   /* ================= LIFECYCLE ================= */
 
   useEffect(() => {
     loadMyOrders();
-  }, []);
+  }, [loadMyOrders]);
 
   /* ================= FILTERS & RENDERING ================= */
 

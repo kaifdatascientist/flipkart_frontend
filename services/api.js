@@ -10,7 +10,7 @@ const getApiUrl = () => {
   }
   
   // Fallback - production Render URL
-  const fallbackUrl = "https://flipkart1-f0oe.onrender.com/api";
+  const fallbackUrl = "https://flipkart1-fo0e.onrender.com/api";
   console.log("📍 Using fallback API URL:", fallbackUrl);
   return fallbackUrl;
 };
@@ -161,6 +161,46 @@ export const registerUser = async (data) => {
     return res.json();
   } catch (error) {
     console.error("Register error:", error);
+    throw error;
+  }
+};
+
+/* ===========================
+   ORDERS
+=========================== */
+
+export const getMyOrders = async () => {
+  try {
+    const token = sessionStorage.getItem("token");
+    if (!token) {
+      throw new Error("Not authenticated. Please login again.");
+    }
+
+    const url = `${API_URL}/orders/my`;
+    console.log("🔥 Fetching my orders from:", url);
+    
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      credentials: 'include',
+    });
+    
+    console.log("📋 Response status:", res.status, res.statusText);
+    
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error("❌ API Error:", res.status, errorText);
+      throw new Error(`Failed to load orders: ${res.status}`);
+    }
+    
+    const data = await res.json();
+    console.log("✅ My orders fetched successfully:", data.length, "items");
+    return data;
+  } catch (error) {
+    console.error("❌ Failed to fetch my orders:", error.message);
     throw error;
   }
 };

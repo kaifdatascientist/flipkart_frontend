@@ -38,7 +38,7 @@ const getSellerProducts = async () => {
 };
 
 const getAllProducts = async () => {
-  const res = await fetch(API_URL);
+  const res = await fetch(`${API_URL}/products`);
   if (!res.ok) throw new Error("All products fetch failed");
   return res.json();
 };
@@ -46,7 +46,7 @@ const getAllProducts = async () => {
 const createProduct = async (formData) => {
   const token = sessionStorage.getItem("token");
 
-  const res = await fetch(API_URL, {
+  const res = await fetch(`${API_URL}/products`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },
     body: formData,
@@ -59,7 +59,7 @@ const createProduct = async (formData) => {
 const updateProduct = async (id, formData) => {
   const token = sessionStorage.getItem("token");
 
-  const res = await fetch(`${API_URL}/${id}`, {
+  const res = await fetch(`${API_URL}/products/${id}`, {
     method: "PUT",
     headers: { Authorization: `Bearer ${token}` },
     body: formData,
@@ -72,7 +72,7 @@ const updateProduct = async (id, formData) => {
 const deleteProduct = async (id) => {
   const token = sessionStorage.getItem("token");
 
-  const res = await fetch(`${API_URL}/${id}`, {
+  const res = await fetch(`${API_URL}/products/${id}`, {
     method: "DELETE",
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -99,7 +99,7 @@ export default function AdminProducts() {
       try {
         data = await getSellerProducts();
         console.log("✅ Loaded SELLER products");
-      } catch (err) {
+      } catch (_err) {
         console.warn("⚠ Seller route failed, falling back to ALL products");
         data = await getAllProducts();
       }
@@ -128,9 +128,11 @@ export default function AdminProducts() {
 
     setLoading(true);
     try {
-      editingId
-        ? await updateProduct(editingId, formData)
-        : await createProduct(formData);
+      if (editingId) {
+        await updateProduct(editingId, formData);
+      } else {
+        await createProduct(formData);
+      }
 
       setForm({ name: "", price: "", stock: 0 });
       setImage(null);
@@ -200,7 +202,7 @@ export default function AdminProducts() {
         </div>
 
         {preview && (
-          <img src={preview} className="w-24 h-24 mt-4 object-cover rounded" />
+          <img src={preview} alt="Product preview" className="w-24 h-24 mt-4 object-cover rounded" />
         )}
 
         <button
@@ -218,6 +220,7 @@ export default function AdminProducts() {
           <div key={p._id} className="bg-white p-4 rounded shadow">
             <img
               src={p.images?.[0] || "https://via.placeholder.com/200"}
+              alt={p.name}
               className="h-40 w-full object-contain mb-2"
             />
             <h3 className="font-bold">{p.name}</h3>
